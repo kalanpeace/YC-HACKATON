@@ -12,6 +12,7 @@ import { UserButton } from "@stackframe/stack";
 import { UserApps } from "@/components/user-apps";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { PromptInputTextareaWithTypingAnimation } from "@/components/prompt-input";
+import { VoiceButton } from "@/components/voice-button";
 
 const queryClient = new QueryClient();
 
@@ -27,6 +28,18 @@ export default function Home() {
     router.push(
       `/app/new?message=${encodeURIComponent(prompt)}&template=${framework}`
     );
+  };
+
+  const handleVoiceResult = (result: {
+    prompt: string;
+    previewInstructions: string[];
+    nextQuestion: string;
+  }) => {
+    // Fill the prompt text box with the generated prompt
+    setPrompt(result.prompt);
+    
+    // Log the other data for debugging
+    console.log('Voice result:', result);
   };
 
   return (
@@ -75,6 +88,7 @@ export default function Home() {
                   >
                     <PromptInputTextareaWithTypingAnimation />
                     <PromptInputActions>
+                      <VoiceButton onVoiceResult={handleVoiceResult} />
                       <Button
                         variant={"ghost"}
                         size="sm"
