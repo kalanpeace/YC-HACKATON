@@ -6,15 +6,15 @@ export function PromptInputTextareaWithTypingAnimation() {
   const placeholderRef = useRef<HTMLTextAreaElement>(null);
 
   const exampleIdeas = [
-    "a dog food marketplace",
-    "a personal portfolio website for my mother's bakery",
-    "a B2B SaaS for burrito shops to sell burritos",
-    "a social network for coders to find grass to touch",
+    "a voice-controlled dashboard",
+    "a landing page with speech commands", 
+    "an app that responds to what I say",
+    "a website I can talk to and modify",
   ];
 
   const { displayText } = useTypingAnimation({
     texts: exampleIdeas,
-    baseText: "I want to build",
+    baseText: "Say it:",
     typingSpeed: 100,
     erasingSpeed: 50,
     pauseDuration: 2000,

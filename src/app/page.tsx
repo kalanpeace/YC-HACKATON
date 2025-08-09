@@ -39,7 +39,7 @@ export default function Home() {
           <Image
             className="dark:invert mx-2"
             src={LogoSvg}
-            alt="Adorable Logo"
+            alt="Tal Logo"
             width={36}
             height={36}
           />
@@ -50,8 +50,11 @@ export default function Home() {
 
         <div>
           <div className="w-full max-w-lg px-4 sm:px-0 mx-auto flex flex-col items-center mt-16 sm:mt-24 md:mt-32 col-start-1 col-end-1 row-start-1 row-end-1 z-10">
-            <p className="text-neutral-600 text-center mb-6 text-3xl sm:text-4xl md:text-5xl font-bold">
-              Let AI Cook
+            <p className="text-neutral-600 text-center mb-2 text-3xl sm:text-4xl md:text-5xl font-bold">
+              Tal
+            </p>
+            <p className="text-neutral-500 text-center mb-6 text-lg sm:text-xl">
+              Say it. See it.
             </p>
 
             <div className="w-full relative my-5">

@@ -18,8 +18,8 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "Adorable",
-  description: "Open Source AI App Builder",
+  title: "Tal - Say it. See it.",
+  description: "Voice-controlled AI app builder. Speak your ideas, see them come to life.",
   manifest: "/manifest.json",
   // viewport: {
   //   width: "device-width",
