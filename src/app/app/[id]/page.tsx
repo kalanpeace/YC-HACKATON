@@ -14,11 +14,13 @@ import { chatState } from "@/actions/chat-streaming";
 
 export default async function AppPage({
   params,
+  searchParams,
 }: {
   params: Promise<{ id: string }>;
   searchParams: Promise<{ [key: string]: string | string[] }>;
 }) {
   const { id } = await params;
+  const search = await searchParams;
 
   const user = await getUser();
 
@@ -54,6 +56,16 @@ export default async function AppPage({
   // Use the previewDomain from the database, or fall back to a generated domain
   const domain = app.info.previewDomain;
 
+  // Parse voice history from URL params (if passed from landing page)
+  let voiceHistory: Array<{role: string, content: string}> = [];
+  if (search.voiceHistory && typeof search.voiceHistory === 'string') {
+    try {
+      voiceHistory = JSON.parse(decodeURIComponent(search.voiceHistory));
+    } catch (e) {
+      console.error('Failed to parse voice history:', e);
+    }
+  }
+
   return (
     <AppWrapper
       key={app.info.id}
@@ -67,6 +79,7 @@ export default async function AppPage({
       repoId={app.info.gitRepo}
       domain={domain ?? undefined}
       running={(await chatState(app.info.id)).state === "running"}
+      voiceHistory={voiceHistory}
     />
   );
 }

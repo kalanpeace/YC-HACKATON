@@ -45,5 +45,10 @@ export default async function NewAppRedirectPage({
     templateId: search.template as string,
   });
 
-  redirect(`/app/${id}`);
+  // Pass voice history through to the app page
+  const voiceHistoryParam = search.voiceHistory 
+    ? `?voiceHistory=${encodeURIComponent(search.voiceHistory as string)}`
+    : '';
+
+  redirect(`/app/${id}${voiceHistoryParam}`);
 }

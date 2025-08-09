@@ -20,13 +20,19 @@ export default function Home() {
   const [prompt, setPrompt] = useState("");
   const [framework, setFramework] = useState("nextjs");
   const [isLoading, setIsLoading] = useState(false);
+  const [voiceHistory, setVoiceHistory] = useState<Array<{role: string, content: string}>>([]);
   const router = useRouter();
 
   const handleSubmit = async () => {
     setIsLoading(true);
 
+    // Encode voice history to pass to the editor
+    const voiceHistoryParam = voiceHistory.length > 0 
+      ? `&voiceHistory=${encodeURIComponent(JSON.stringify(voiceHistory))}`
+      : '';
+
     router.push(
-      `/app/new?message=${encodeURIComponent(prompt)}&template=${framework}`
+      `/app/new?message=${encodeURIComponent(prompt)}&template=${framework}${voiceHistoryParam}`
     );
   };
 
@@ -88,7 +94,10 @@ export default function Home() {
                   >
                     <PromptInputTextareaWithTypingAnimation />
                     <PromptInputActions>
-                      <VoiceButton onVoiceResult={handleVoiceResult} />
+                      <VoiceButton 
+                        onVoiceResult={handleVoiceResult}
+                        onConversationChange={setVoiceHistory}
+                      />
                       <Button
                         variant={"ghost"}
                         size="sm"

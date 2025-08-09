@@ -2,28 +2,24 @@
 
 import { useState, useRef } from "react";
 import { Button } from "@/components/ui/button";
-import { Mic, MicOff, Loader2, RotateCcw } from "lucide-react";
+import { Mic, MicOff, Loader2, RotateCcw, MessageCircle } from "lucide-react";
 
-interface VoiceButtonProps {
-  onVoiceResult: (result: {
-    prompt: string;
-    previewInstructions: string[];
-    nextQuestion: string;
-  }) => void;
-  onReset?: () => void;
-  onConversationChange?: (conversation: Array<{role: string, content: string}>) => void;
+interface VoiceChatPanelProps {
+  appId: string;
+  initialHistory?: Array<{role: string, content: string}>;
+  onWebsiteChange?: (changeDescription: string) => void;
 }
 
-export function VoiceButton({ onVoiceResult, onReset, onConversationChange }: VoiceButtonProps) {
+export function VoiceChatPanel({ appId, initialHistory = [], onWebsiteChange }: VoiceChatPanelProps) {
   const [isListening, setIsListening] = useState(false);
   const [isProcessing, setIsProcessing] = useState(false);
-  const [conversation, setConversation] = useState<Array<{role: string, content: string}>>([]);
+  const [conversation, setConversation] = useState<Array<{role: string, content: string}>>(initialHistory);
   const recognitionRef = useRef<any>(null);
   const audioRef = useRef<HTMLAudioElement | null>(null);
 
   const playTTSResponse = async (text: string, audioElement?: HTMLAudioElement) => {
     try {
-      console.log('🔊 Playing TTS response:', text);
+      console.log('🔊 Playing Tal response:', text);
       const response = await fetch('/api/speak', {
         method: 'POST',
         headers: {
@@ -36,7 +32,6 @@ export function VoiceButton({ onVoiceResult, onReset, onConversationChange }: Vo
         const audioBlob = await response.blob();
         const audioUrl = URL.createObjectURL(audioBlob);
         
-        // Use existing audio element or create new one
         const audio = audioElement || new Audio();
         audio.src = audioUrl;
         
@@ -48,7 +43,6 @@ export function VoiceButton({ onVoiceResult, onReset, onConversationChange }: Vo
           await audio.play();
         } catch (playError) {
           console.warn('Audio blocked by browser policy:', playError);
-          // Could show a "Click to play" button here instead
         }
       } else {
         console.error('TTS failed:', await response.text());
@@ -62,14 +56,16 @@ export function VoiceButton({ onVoiceResult, onReset, onConversationChange }: Vo
     setIsProcessing(true);
 
     try {
-      const response = await fetch('/api/voice-chat', {
+      const response = await fetch('/api/voice-chat-editor', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
           message: transcript,
-          history: conversation
+          history: conversation,
+          appId: appId,
+          context: "editing"
         }),
       });
 
@@ -84,13 +80,19 @@ export function VoiceButton({ onVoiceResult, onReset, onConversationChange }: Vo
         ];
         setConversation(newConversation);
 
-        // Notify parent of conversation change
-        if (onConversationChange) {
-          onConversationChange(newConversation);
+        // If Tal wants to make changes, submit to chat
+        if (result.data.websiteChange) {
+          // Emit event for chat component to pick up
+          const event = new CustomEvent('voice-chat-submit', {
+            detail: { message: result.data.websiteChange }
+          });
+          window.dispatchEvent(event);
+          
+          // Also notify parent component if provided
+          if (onWebsiteChange) {
+            onWebsiteChange(result.data.websiteChange);
+          }
         }
-
-        // Call the callback with the result
-        onVoiceResult(result.data);
         
         // Generate and play TTS response using speech field
         if (result.data.speech) {
@@ -143,7 +145,6 @@ export function VoiceButton({ onVoiceResult, onReset, onConversationChange }: Vo
       setIsListening(false);
       setIsProcessing(false);
       
-      // Handle different error types
       let errorMessage = 'Voice recognition failed. ';
       switch(event.error) {
         case 'network':
@@ -159,7 +160,6 @@ export function VoiceButton({ onVoiceResult, onReset, onConversationChange }: Vo
           errorMessage += `Error: ${event.error}. Please try again.`;
       }
       
-      // Show user-friendly error (you can replace with a toast notification)
       alert(errorMessage);
     };
 
@@ -178,60 +178,31 @@ export function VoiceButton({ onVoiceResult, onReset, onConversationChange }: Vo
     setIsListening(false);
   };
 
-  const resetConversation = () => {
-    setConversation([]);
-    setIsListening(false);
-    if (recognitionRef.current) {
-      recognitionRef.current.stop();
-    }
-    
-    // Notify parent of conversation reset
-    if (onConversationChange) {
-      onConversationChange([]);
-    }
-    
-    if (onReset) {
-      onReset();
-    }
-  };
 
+  // Just floating voice button - starts listening immediately
   return (
-    <div className="flex gap-2">
+    <div className="fixed bottom-6 right-6 z-50">
       <Button
-        variant={isListening ? "destructive" : "outline"}
-        size="sm"
         onClick={isListening ? stopListening : startListening}
         disabled={isProcessing}
-        className="h-7 text-xs"
+        className={`h-14 w-14 rounded-full shadow-lg transition-all ${
+          isListening 
+            ? "bg-red-500 hover:bg-red-600 animate-pulse" 
+            : isProcessing
+            ? "bg-blue-500 hover:bg-blue-600"
+            : "bg-primary hover:bg-primary/90"
+        }`}
+        size="lg"
+        title={isProcessing ? "Tal is thinking..." : isListening ? "Listening... (click to stop)" : "Talk to Tal"}
       >
         {isProcessing ? (
-          <Loader2 className="h-4 w-4 animate-spin" />
+          <Loader2 className="h-6 w-6 animate-spin" />
         ) : isListening ? (
-          <MicOff className="h-4 w-4" />
+          <MicOff className="h-6 w-6" />
         ) : (
-          <Mic className="h-4 w-4" />
+          <Mic className="h-6 w-6" />
         )}
-        <span className="ml-1">
-          {isProcessing 
-            ? "Thinking..." 
-            : isListening 
-              ? "Listening..." 
-              : "Talk"}
-        </span>
       </Button>
-      
-      {conversation.length > 0 && (
-        <Button
-          variant="ghost"
-          size="sm"
-          onClick={resetConversation}
-          disabled={isProcessing || isListening}
-          className="h-7 text-xs"
-          title="Reset conversation"
-        >
-          <RotateCcw className="h-4 w-4" />
-        </Button>
-      )}
     </div>
   );
 }

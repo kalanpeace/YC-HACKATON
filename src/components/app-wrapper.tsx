@@ -7,6 +7,7 @@ import { MessageCircle, Monitor } from "lucide-react";
 import WebView from "./webview";
 import { UIMessage } from "ai";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
+import { VoiceChatPanel } from "./voice-chat-panel";
 
 const queryClient = new QueryClient();
 
@@ -21,6 +22,7 @@ export default function AppWrapper({
   running,
   codeServerUrl,
   consoleUrl,
+  voiceHistory,
 }: {
   appName: string;
   repo: string;
@@ -33,6 +35,7 @@ export default function AppWrapper({
   consoleUrl: string;
   domain?: string;
   running: boolean;
+  voiceHistory?: Array<{role: string, content: string}>;
 }) {
   const [mobileActiveTab, setMobileActiveTab] = useState<"chat" | "preview">(
     "chat"
@@ -128,6 +131,16 @@ export default function AppWrapper({
           </div>
         </div>
       </div>
+
+      {/* Voice Chat Panel */}
+      <VoiceChatPanel 
+        appId={appId}
+        initialHistory={voiceHistory}
+        onWebsiteChange={(change) => {
+          console.log('Website change requested:', change);
+          // TODO: Integrate with website modification system
+        }}
+      />
 
       {/* Mobile tab navigation */}
       {isMobile && (

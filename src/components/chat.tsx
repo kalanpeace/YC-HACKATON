@@ -4,7 +4,7 @@ import Image from "next/image";
 
 import { PromptInputBasic } from "./chatinput";
 import { Markdown } from "./ui/markdown";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { ChatContainer } from "./ui/chat-container";
 import { UIMessage } from "ai";
 import { ToolMessage } from "./tools";
@@ -36,6 +36,33 @@ export default function Chat(props: {
   });
 
   const [input, setInput] = useState("");
+
+  // Listen for voice chat submissions
+  useEffect(() => {
+    const handleVoiceSubmit = (event: CustomEvent) => {
+      const message = event.detail.message;
+      if (message && message.trim()) {
+        sendMessage(
+          {
+            parts: [
+              {
+                type: "text",
+                text: message,
+              },
+            ],
+          },
+          {
+            headers: {
+              "Adorable-App-Id": props.appId,
+            },
+          }
+        );
+      }
+    };
+
+    window.addEventListener('voice-chat-submit', handleVoiceSubmit as EventListener);
+    return () => window.removeEventListener('voice-chat-submit', handleVoiceSubmit as EventListener);
+  }, [sendMessage, props.appId]);
 
   const onSubmit = (e?: React.FormEvent<HTMLFormElement>) => {
     if (e?.preventDefault) {
@@ -89,6 +116,7 @@ export default function Chat(props: {
     );
     setInput("");
   };
+
 
   async function handleStop() {
     await fetch("/api/chat/" + props.appId + "/stream", {
