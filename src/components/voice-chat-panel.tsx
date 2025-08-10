@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useRef } from "react";
+import { useState, useRef, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Mic, MicOff, Loader2, RotateCcw, MessageCircle } from "lucide-react";
 
@@ -14,8 +14,32 @@ export function VoiceChatPanel({ appId, initialHistory = [], onWebsiteChange }: 
   const [isListening, setIsListening] = useState(false);
   const [isProcessing, setIsProcessing] = useState(false);
   const [conversation, setConversation] = useState<Array<{role: string, content: string}>>(initialHistory);
+  const [mousePosition, setMousePosition] = useState({ x: 0, y: 0 });
+  const [isHovered, setIsHovered] = useState(false);
   const recognitionRef = useRef<any>(null);
   const audioRef = useRef<HTMLAudioElement | null>(null);
+
+  useEffect(() => {
+    const handleMouseMove = (e: MouseEvent) => {
+      const button = document.getElementById('tal-voice-button');
+      if (button) {
+        const rect = button.getBoundingClientRect();
+        const centerX = rect.left + rect.width / 2;
+        const centerY = rect.top + rect.height / 2;
+
+        const deltaX = (e.clientX - centerX) * 0.05;
+        const deltaY = (e.clientY - centerY) * 0.05;
+
+        setMousePosition({ x: deltaX, y: deltaY });
+      }
+    };
+
+    window.addEventListener('mousemove', handleMouseMove);
+    return () => window.removeEventListener('mousemove', handleMouseMove);
+  }, []);
+
+  // Screenshot capture temporarily disabled for speed
+  // Will be re-enabled with server-side capture later
 
   const playTTSResponse = async (text: string, audioElement?: HTMLAudioElement) => {
     try {
@@ -56,6 +80,8 @@ export function VoiceChatPanel({ appId, initialHistory = [], onWebsiteChange }: 
     setIsProcessing(true);
 
     try {
+      console.log('🎤 Processing voice message:', transcript);
+      
       const response = await fetch('/api/voice-chat-editor', {
         method: 'POST',
         headers: {
@@ -66,6 +92,7 @@ export function VoiceChatPanel({ appId, initialHistory = [], onWebsiteChange }: 
           history: conversation,
           appId: appId,
           context: "editing"
+          // screenshot: null - removed for speed
         }),
       });
 
@@ -179,30 +206,121 @@ export function VoiceChatPanel({ appId, initialHistory = [], onWebsiteChange }: 
   };
 
 
-  // Just floating voice button - starts listening immediately
+  // Tal the cute sun avatar - voice button
   return (
     <div className="fixed bottom-6 right-6 z-50">
-      <Button
+      <div
+        id="tal-voice-button"
+        className="relative cursor-pointer select-none"
         onClick={isListening ? stopListening : startListening}
-        disabled={isProcessing}
-        className={`h-14 w-14 rounded-full shadow-lg transition-all ${
-          isListening 
-            ? "bg-red-500 hover:bg-red-600 animate-pulse" 
-            : isProcessing
-            ? "bg-blue-500 hover:bg-blue-600"
-            : "bg-primary hover:bg-primary/90"
-        }`}
-        size="lg"
-        title={isProcessing ? "Tal is thinking..." : isListening ? "Listening... (click to stop)" : "Talk to Tal"}
+        onMouseEnter={() => setIsHovered(true)}
+        onMouseLeave={() => setIsHovered(false)}
+        title={isProcessing ? "Tal is thinking..." : isListening ? "Listening... (click to stop)" : "Hi! I'm Tal - click to talk!"}
       >
-        {isProcessing ? (
-          <Loader2 className="h-6 w-6 animate-spin" />
-        ) : isListening ? (
-          <MicOff className="h-6 w-6" />
-        ) : (
-          <Mic className="h-6 w-6" />
-        )}
-      </Button>
+        {/* Tal the sun-inspired character */}
+        <div className={`w-16 h-16 relative transition-all duration-500 ${
+          isHovered ? 'scale-110' : 'scale-100'
+        } ${
+          isListening ? 'animate-pulse' : ''
+        }`}>
+
+          {/* Cute sun rays */}
+          <div className="absolute inset-0">
+            <div className={`absolute top-0 left-1/2 transform -translate-x-1/2 -translate-y-1 w-0.5 h-3 rounded-full animate-pulse ${
+              isListening ? 'bg-red-400/60' : isProcessing ? 'bg-blue-400/60' : 'bg-yellow-400/40'
+            }`}></div>
+            <div className={`absolute bottom-0 left-1/2 transform -translate-x-1/2 translate-y-1 w-0.5 h-3 rounded-full animate-pulse delay-100 ${
+              isListening ? 'bg-red-400/60' : isProcessing ? 'bg-blue-400/60' : 'bg-yellow-400/40'
+            }`}></div>
+            <div className={`absolute left-0 top-1/2 transform -translate-y-1/2 -translate-x-1 w-3 h-0.5 rounded-full animate-pulse delay-200 ${
+              isListening ? 'bg-red-400/60' : isProcessing ? 'bg-blue-400/60' : 'bg-yellow-400/40'
+            }`}></div>
+            <div className={`absolute right-0 top-1/2 transform -translate-y-1/2 translate-x-1 w-3 h-0.5 rounded-full animate-pulse delay-300 ${
+              isListening ? 'bg-red-400/60' : isProcessing ? 'bg-blue-400/60' : 'bg-yellow-400/40'
+            }`}></div>
+          </div>
+
+          {/* Warm glow */}
+          <div className={`absolute inset-0 rounded-full blur-sm animate-pulse transition-colors duration-500 ${
+            isListening ? 'bg-red-300/30' : isProcessing ? 'bg-blue-300/30' : 'bg-yellow-300/30'
+          }`}></div>
+
+          {/* Main sunny body */}
+          <div className={`absolute inset-1 rounded-full backdrop-blur-sm border-2 shadow-lg transition-all duration-500 ${
+            isListening 
+              ? 'bg-gradient-to-br from-red-100/95 to-red-200/85 border-red-200/70' 
+              : isProcessing
+              ? 'bg-gradient-to-br from-blue-100/95 to-blue-200/85 border-blue-200/70'
+              : 'bg-gradient-to-br from-yellow-100/95 to-orange-100/85 border-yellow-200/70'
+          }`}>
+
+            {/* Cheerful face area */}
+            <div className="absolute inset-1 bg-gradient-to-br from-white/90 to-yellow-50/70 rounded-full">
+
+              {/* Happy eyes */}
+              <div className="absolute top-1/3 left-1/4 transform -translate-x-1/2">
+                <div className="w-2 h-2 bg-white rounded-full shadow-inner border border-yellow-200/50">
+                  <div 
+                    className={`w-1 h-1 rounded-full mt-0.5 ml-0.5 transition-all duration-300 ${
+                      isListening ? 'bg-red-600' : isProcessing ? 'bg-blue-600' : 'bg-gray-800'
+                    } ${isHovered ? 'animate-bounce' : ''}`}
+                    style={{
+                      transform: `translate(${mousePosition.x * 0.1}px, ${mousePosition.y * 0.1}px)`
+                    }}
+                  ></div>
+                  <div className="absolute top-0 left-0.5 w-0.5 h-0.5 bg-white rounded-full"></div>
+                </div>
+              </div>
+
+              <div className="absolute top-1/3 right-1/4 transform translate-x-1/2">
+                <div className="w-2 h-2 bg-white rounded-full shadow-inner border border-yellow-200/50">
+                  <div 
+                    className={`w-1 h-1 rounded-full mt-0.5 ml-0.5 transition-all duration-300 ${
+                      isListening ? 'bg-red-600' : isProcessing ? 'bg-blue-600' : 'bg-gray-800'
+                    } ${isHovered ? 'animate-bounce delay-100' : ''}`}
+                    style={{
+                      transform: `translate(${mousePosition.x * 0.1}px, ${mousePosition.y * 0.1}px)`
+                    }}
+                  ></div>
+                  <div className="absolute top-0 left-0.5 w-0.5 h-0.5 bg-white rounded-full"></div>
+                </div>
+              </div>
+
+              {/* Sweet smile */}
+              <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 translate-y-1">
+                <div className={`w-2 h-1 border border-t-0 rounded-b-lg transition-all duration-300 ${
+                  isListening ? 'border-red-500/70' : isProcessing ? 'border-blue-500/70' : 'border-orange-500/70'
+                } ${isHovered ? 'animate-pulse w-3' : ''}`}></div>
+              </div>
+
+              {/* Warm cheeks */}
+              <div className={`absolute top-1/2 left-1 w-1 h-1 rounded-full transition-all duration-300 ${
+                isListening ? 'bg-red-300/50' : isProcessing ? 'bg-blue-300/50' : 'bg-yellow-300/50'
+              } ${isHovered ? 'bg-opacity-70 animate-pulse' : ''}`}></div>
+              <div className={`absolute top-1/2 right-1 w-1 h-1 rounded-full transition-all duration-300 ${
+                isListening ? 'bg-red-300/50' : isProcessing ? 'bg-blue-300/50' : 'bg-yellow-300/50'
+              } ${isHovered ? 'bg-opacity-70 animate-pulse' : ''}`}></div>
+
+            </div>
+          </div>
+
+          {/* Processing spinner overlay */}
+          {isProcessing && (
+            <div className="absolute inset-0 flex items-center justify-center">
+              <Loader2 className="w-4 h-4 animate-spin text-blue-600" />
+            </div>
+          )}
+
+          {/* Floating particles */}
+          <div className={`absolute -top-0.5 -right-0.5 w-1 h-1 rounded-full animate-twinkle shadow-sm ${
+            isListening ? 'bg-red-400' : isProcessing ? 'bg-blue-400' : 'bg-yellow-400'
+          }`}></div>
+          <div className={`absolute -bottom-0.5 -left-0.5 w-0.5 h-0.5 rounded-full animate-twinkle delay-500 shadow-sm ${
+            isListening ? 'bg-red-400' : isProcessing ? 'bg-blue-400' : 'bg-orange-400'
+          }`}></div>
+        </div>
+
+      </div>
     </div>
   );
 }

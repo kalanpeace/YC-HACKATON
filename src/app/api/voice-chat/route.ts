@@ -15,7 +15,10 @@ CONVERSATION FLOW:
 1. If user greets you → be EXCITED to meet them and ask what they want to build!
 2. If they mention a project → get genuinely curious and ask enthusiastic follow-ups
 3. After 2-5 questions → create the detailed prompt with excitement
-4. If they approve → celebrate and finalize it!
+4. When ready → ask "Ready to build this? Just say 'build it' or 'create it' when you're ready!"
+5. If they say confirmation words → IMMEDIATELY set readyToBuild: true and generate full build prompt
+
+CRITICAL: When user says "build it", "create it", etc. → NO MORE QUESTIONS! Start building immediately!
 
 BEHAVIOR RULES:
 - Be BUBBLY and enthusiastic in every response!
@@ -26,18 +29,27 @@ BEHAVIOR RULES:
 
 JSON FORMAT (always return this):
 {
-  "prompt": "ONLY detailed instructions when ready to build, otherwise brief summary",
+  "prompt": "ONLY complete build instructions when readyToBuild=true, otherwise keep brief (≤100 chars)",
   "previewInstructions": ["basic design tokens when discussed"],
-  "nextQuestion": "Enthusiastic follow-up question!", 
-  "speech": "Bubbly, excited response for voice (≤2 sentences with energy!)"
+  "nextQuestion": "EMPTY STRING when readyToBuild=true, otherwise enthusiastic follow-up question!", 
+  "speech": "Bubbly, excited response for voice (≤2 sentences with energy!)",
+  "readyToBuild": "true ONLY if user said confirmation words like 'build it', 'create it', 'let's go', 'yes build this', etc."
 }
+
+CRITICAL: When readyToBuild=true, set nextQuestion="" (empty) - NO MORE QUESTIONS!
 
 EXAMPLES:
 User: "Hi can you hear me" 
 → speech: "Hi there! Yes, I can totally hear you! I'm SO excited to help you build something awesome - what kind of website are we making today?!"
 
 User: "I want a restaurant site"
-→ speech: "Oh amazing! A restaurant website sounds fantastic! What's the vibe - cozy family spot, trendy bistro, or fancy fine dining?!"`;
+→ speech: "Oh amazing! A restaurant website sounds fantastic! What's the vibe - cozy family spot, trendy bistro, or fancy fine dining?!"
+
+User: "Build it for me!" 
+→ speech: "YES! Let's build this amazing restaurant website right now! Here we go!"
+→ nextQuestion: ""
+→ readyToBuild: true
+→ prompt: "[FULL detailed build instructions here]"`;
 
 export async function POST(req: NextRequest) {
   try {
@@ -74,7 +86,7 @@ export async function POST(req: NextRequest) {
       body: JSON.stringify({
         model: "gpt-5-mini",
         stream: false,
-        max_output_tokens: 600,
+        max_output_tokens: 1000,
         reasoning: {
           effort: "minimal"
         },
@@ -86,9 +98,9 @@ export async function POST(req: NextRequest) {
             schema: {
               type: "object",
               additionalProperties: false,
-              required: ["prompt", "previewInstructions", "nextQuestion", "speech"],
+              required: ["prompt", "previewInstructions", "nextQuestion", "speech", "readyToBuild"],
               properties: {
-                prompt: { type: "string", maxLength: 800 },
+                prompt: { type: "string", maxLength: 1200 },
                 previewInstructions: {
                   type: "array",
                   minItems: 3,
@@ -96,7 +108,8 @@ export async function POST(req: NextRequest) {
                   items: { type: "string", maxLength: 150 }
                 },
                 nextQuestion: { type: "string", maxLength: 300 },
-                speech: { type: "string", maxLength: 300 }
+                speech: { type: "string", maxLength: 300 },
+                readyToBuild: { type: "boolean", description: "true if user said confirmation words to start building" }
               }
             },
             strict: true
@@ -129,9 +142,33 @@ export async function POST(req: NextRequest) {
           const textContent = messageOutput.content.find(c => c.type === "output_text");
           if (textContent && textContent.text) {
             try {
+              // Try to parse the JSON
               parsedResponse = JSON.parse(textContent.text);
             } catch (e) {
               console.error('Failed to parse JSON from text:', textContent.text);
+              console.error('JSON parse error:', e);
+              
+              // Try to fix common JSON truncation issues
+              let fixedText = textContent.text;
+              if (!fixedText.endsWith('}')) {
+                // JSON might be truncated, try to close it
+                fixedText += '"}';
+              }
+              
+              try {
+                parsedResponse = JSON.parse(fixedText);
+                console.log('Fixed truncated JSON successfully');
+              } catch (e2) {
+                console.error('Failed to fix JSON:', e2);
+                // Return a fallback response
+                parsedResponse = {
+                  prompt: "I need to better understand what you want to build. Could you describe it again?",
+                  previewInstructions: ["Gathering requirements", "Planning structure", "Designing layout"],
+                  nextQuestion: "Could you tell me more details about your website idea?",
+                  speech: "Sorry, I had trouble processing that! Could you tell me again what you want to build?",
+                  readyToBuild: false
+                };
+              }
             }
           }
         }

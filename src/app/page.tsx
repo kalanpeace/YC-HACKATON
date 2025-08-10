@@ -1,18 +1,13 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import { PromptInput, PromptInputActions } from "@/components/ui/prompt-input";
 import { FrameworkSelector } from "@/components/framework-selector";
-import Image from "next/image";
-import LogoSvg from "@/logo.svg";
 import { useState } from "react";
-import { Button } from "@/components/ui/button";
 import { ExampleButton } from "@/components/ExampleButton";
 import { UserButton } from "@stackframe/stack";
 import { UserApps } from "@/components/user-apps";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { PromptInputTextareaWithTypingAnimation } from "@/components/prompt-input";
-import { VoiceButton } from "@/components/voice-button";
+import { HomeVoiceButton } from "@/components/home-voice-button";
 
 const queryClient = new QueryClient();
 
@@ -21,6 +16,7 @@ export default function Home() {
   const [framework, setFramework] = useState("nextjs");
   const [isLoading, setIsLoading] = useState(false);
   const [voiceHistory, setVoiceHistory] = useState<Array<{role: string, content: string}>>([]);
+  const [triggerMessage, setTriggerMessage] = useState<string | undefined>(undefined);
   const router = useRouter();
 
   const handleSubmit = async () => {
@@ -51,18 +47,8 @@ export default function Home() {
   return (
     <QueryClientProvider client={queryClient}>
       <main className="min-h-screen p-4 relative">
-        <div className="flex w-full justify-between items-center">
-          <h1 className="text-lg font-bold flex-1 sm:w-80">
-            <a href="https://www.freestyle.sh">freestyle.sh</a>
-          </h1>
-          <Image
-            className="dark:invert mx-2"
-            src={LogoSvg}
-            alt="Tal Logo"
-            width={36}
-            height={36}
-          />
-          <div className="flex items-center gap-2 flex-1 sm:w-80 justify-end">
+        <div className="flex w-full justify-end items-center">
+          <div className="flex items-center gap-2">
             <UserButton />
           </div>
         </div>
@@ -76,59 +62,25 @@ export default function Home() {
               Say it. See it.
             </p>
 
-            <div className="w-full relative my-5">
-              <div className="relative w-full max-w-full overflow-hidden">
-                <div className="w-full bg-accent rounded-md relative z-10 border transition-colors">
-                  <PromptInput
-                    leftSlot={
-                      <FrameworkSelector
-                        value={framework}
-                        onChange={setFramework}
-                      />
-                    }
-                    isLoading={isLoading}
-                    value={prompt}
-                    onValueChange={setPrompt}
-                    onSubmit={handleSubmit}
-                    className="relative z-10 border-none bg-transparent shadow-none focus-within:border-gray-400 focus-within:ring-1 focus-within:ring-gray-200 transition-all duration-200 ease-in-out "
-                  >
-                    <PromptInputTextareaWithTypingAnimation />
-                    <PromptInputActions>
-                      <VoiceButton 
-                        onVoiceResult={handleVoiceResult}
-                        onConversationChange={setVoiceHistory}
-                      />
-                      <Button
-                        variant={"ghost"}
-                        size="sm"
-                        onClick={handleSubmit}
-                        disabled={isLoading || !prompt.trim()}
-                        className="h-7 text-xs"
-                      >
-                        <span className="hidden sm:inline">
-                          Start Creating ⏎
-                        </span>
-                        <span className="sm:hidden">Create ⏎</span>
-                      </Button>
-                    </PromptInputActions>
-                  </PromptInput>
-                </div>
-              </div>
+            {/* Tal Voice Interface */}
+            <div className="w-full relative my-8">
+              <HomeVoiceButton 
+                onVoiceResult={handleVoiceResult}
+                onConversationChange={setVoiceHistory}
+                onConfirmCreate={handleSubmit}
+                triggerMessage={triggerMessage}
+                onMessageProcessed={() => setTriggerMessage(undefined)}
+              />
+            </div>
+
+            {/* Framework Selector */}
+            <div className="mt-8 mb-4">
+              <FrameworkSelector
+                value={framework}
+                onChange={setFramework}
+              />
             </div>
             <Examples setPrompt={setPrompt} />
-            <div className="mt-8 mb-16">
-              <a
-                href="https://freestyle.sh"
-                className="border rounded-md px-4 py-2 mt-4 text-sm font-semibold transition-colors duration-200 ease-in-out cursor-pointer w-full max-w-72 text-center block"
-              >
-                <span className="block font-bold">
-                  By <span className="underline">freestyle.sh</span>
-                </span>
-                <span className="text-xs">
-                  JavaScript infrastructure for AI.
-                </span>
-              </a>
-            </div>
           </div>
         </div>
         <div className="border-t py-8 mx-0 sm:-mx-4">
@@ -141,30 +93,31 @@ export default function Home() {
 
 function Examples({ setPrompt }: { setPrompt: (text: string) => void }) {
   return (
-    <div className="mt-2">
+    <div className="mt-8">
+      <p className="text-center text-sm text-gray-500 mb-4">Need help? Start a conversation with these:</p>
       <div className="flex flex-wrap justify-center gap-2 px-2">
         <ExampleButton
-          text="Dog Food Marketplace"
-          promptText="Build a dog food marketplace where users can browse and purchase premium dog food."
+          text="I want a coffee shop website"
+          promptText="I want a coffee shop website with online ordering and menu display"
           onClick={(text) => {
             console.log("Example clicked:", text);
-            setPrompt(text);
+            setTriggerMessage(text);
           }}
         />
         <ExampleButton
-          text="Personal Website"
-          promptText="Create a personal website with portfolio, blog, and contact sections."
+          text="Help me build a portfolio"
+          promptText="Help me build a personal portfolio to showcase my work and skills"
           onClick={(text) => {
             console.log("Example clicked:", text);
-            setPrompt(text);
+            setTriggerMessage(text);
           }}
         />
         <ExampleButton
-          text="Burrito B2B SaaS"
-          promptText="Build a B2B SaaS for burrito shops to manage inventory, orders, and delivery logistics."
+          text="I need a business website"
+          promptText="I need a professional business website with services and contact info"
           onClick={(text) => {
             console.log("Example clicked:", text);
-            setPrompt(text);
+            setTriggerMessage(text);
           }}
         />
       </div>
